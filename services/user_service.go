@@ -15,7 +15,7 @@ func FindUserByUsername(username string) (models.User, error) {
 	return result, err
 }
 
-func InsertUser(user models.User) (*mongo.InsertOneResult, error) {
+func InsertUser(user interface{}) (*mongo.InsertOneResult, error) {
 	db := client.Database("saas").Collection("user")
 	return db.InsertOne(context.TODO(), user)
 

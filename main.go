@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/tieubaoca/simple-chat-server/controllers"
 	"github.com/tieubaoca/simple-chat-server/models"
@@ -23,7 +22,7 @@ var upgrader websocket.Upgrader
 var broadcast = make(chan models.Message)
 
 func main() {
-	r := mux.NewRouter()
+	// r := mux.NewRouter().StrictSlash(true)
 	//init ws
 	wsClients = make(map[string]*websocket.Conn)
 	upgrader = websocket.Upgrader{
@@ -45,17 +44,18 @@ func main() {
 
 	initDb(dbClient)
 	services.InitDB(dbClient)
-
-	r.HandleFunc("/ws", handleWebsocket)
-	r.HandleFunc("/chat-room/id", controllers.FindChatRoomById).Methods(http.MethodGet)
-	r.HandleFunc("/chat-room/member", controllers.FindChatRoomsByMember).Methods(http.MethodGet)
-	r.HandleFunc("/chat-room", controllers.InsertChatRoom).Methods(http.MethodPost)
+	http.Handle("/api/ws", http.HandlerFunc(handleWebsocket))
+	http.HandleFunc("/api/chat-room/id", controllers.FindChatRoomById)
+	http.HandleFunc("/api/chat-room/member", controllers.FindChatRoomsByMember)
+	http.HandleFunc("/api/chat-room/members", controllers.FindChatRoomByMembers)
+	http.HandleFunc("/api/chat-room", controllers.InsertChatRoom)
+	http.Handle("/", http.Handler(http.FileServer(http.Dir("./public/"))))
 
 	go handleMessages()
 
 	log.Println("Server start on 8800")
 
-	log.Fatal(http.ListenAndServe(":8800", r))
+	log.Fatal(http.ListenAndServe(":8800", nil))
 
 	defer dbClient.Disconnect(context.TODO())
 }
@@ -72,7 +72,7 @@ func handleWebsocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user, _ := services.FindUserByUsername(username); user.Username == "" {
-		if _, err := services.InsertUser(models.User{Username: username}); err != nil {
+		if _, err := services.InsertUser(bson.M{"username": username}); err != nil {
 			return
 		}
 	}
@@ -105,7 +105,11 @@ func handleMessages() {
 		if err != nil {
 			log.Println(err)
 		}
-		_, err = services.InsertMessage(msg)
+		_, err = services.InsertMessage(bson.M{
+			"chat_room": msg.ChatRoom,
+			"sender":    msg.Sender,
+			"content":   msg.Content,
+		})
 		if err != nil {
 			log.Println(err)
 			continue

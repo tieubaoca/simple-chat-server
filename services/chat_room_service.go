@@ -43,7 +43,7 @@ func FindChatRoomByMembers(members []string) (models.ChatRoom, error) {
 	return result, err
 }
 
-func InsertChatRoom(chatRoom models.ChatRoom) (*mongo.InsertOneResult, error) {
+func InsertChatRoom(chatRoom interface{}) (*mongo.InsertOneResult, error) {
 	db := client.Database("saas").Collection("chat_room")
 	return db.InsertOne(context.TODO(), chatRoom)
 }

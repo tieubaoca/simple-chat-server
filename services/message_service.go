@@ -26,7 +26,7 @@ func FindMessagesByChatRoomId(chatRoomId string) ([]models.Message, error) {
 	return messages, nil
 }
 
-func InsertMessage(message models.Message) (*mongo.InsertOneResult, error) {
+func InsertMessage(message interface{}) (*mongo.InsertOneResult, error) {
 	db := client.Database("saas").Collection("message")
 	return db.InsertOne(context.TODO(), message)
 }
