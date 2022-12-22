@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/tieubaoca/simple-chat-server/controllers"
 	"github.com/tieubaoca/simple-chat-server/models"
@@ -22,7 +23,7 @@ var upgrader websocket.Upgrader
 var broadcast = make(chan models.Message)
 
 func main() {
-	// r := mux.NewRouter().StrictSlash(true)
+	r := mux.NewRouter().StrictSlash(true)
 	//init ws
 	wsClients = make(map[string]*websocket.Conn)
 	upgrader = websocket.Upgrader{
@@ -44,18 +45,18 @@ func main() {
 
 	initDb(dbClient)
 	services.InitDB(dbClient)
-	http.Handle("/api/ws", http.HandlerFunc(handleWebsocket))
-	http.HandleFunc("/api/chat-room/id", controllers.FindChatRoomById)
-	http.HandleFunc("/api/chat-room/member", controllers.FindChatRoomsByMember)
-	http.HandleFunc("/api/chat-room/members", controllers.FindChatRoomByMembers)
-	http.HandleFunc("/api/chat-room", controllers.InsertChatRoom)
-	http.Handle("/", http.Handler(http.FileServer(http.Dir("./public/"))))
+	r.Handle("/api/ws", http.HandlerFunc(handleWebsocket))
+	r.HandleFunc("/api/chat-room/id", controllers.FindChatRoomById).Methods("GET")
+	r.HandleFunc("/api/chat-room/member", controllers.FindChatRoomsByMember).Methods("GET")
+	r.HandleFunc("/api/chat-room/members", controllers.FindChatRoomByMembers).Methods("GET")
+	r.HandleFunc("/api/chat-room", controllers.InsertChatRoom).Methods("POST")
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public")))
 
 	go handleMessages()
 
 	log.Println("Server start on 8800")
 
-	log.Fatal(http.ListenAndServe(":8800", nil))
+	log.Fatal(http.ListenAndServe(":8800", r))
 
 	defer dbClient.Disconnect(context.TODO())
 }
